@@ -1,0 +1,9 @@
+package hello;
+
+use logos.std.io;
+
+fn main() -> i32 {
+    let x = 1;
+    println("hello, logos");
+    return 0;
+}

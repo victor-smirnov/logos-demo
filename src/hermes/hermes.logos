@@ -1,0 +1,126 @@
+// hermes showcase — Hermes documents in Logos, two ways.
+//
+//   A. Hermes as LANGUAGE INTEGRATION: @-literal documents that capture live
+//      Logos values ($x / ${expr}), list comprehensions, and @-pattern matching.
+//      Hermes here is syntax the compiler lowers, not just a library call.
+//
+//   B. Hermes at RUNTIME: parse SDN text into an arena document, navigate it by
+//      key/index, pull scalars out, and stringify it back.
+//
+// Debugging (build + F5; target is `hermes`):
+//   * Ordinary Logos locals pretty-print well: `name` (str) shows as "widget",
+//     `version` (i64) as 42, `active` (bool) as true, String/Vec/slice too.
+//   * A live `HAny` local does NOT pretty-print — `print version_v` shows the
+//     bare enum (`{<No data fields>}`). The 8-byte word holds the value; decode
+//     it by hand: `p/x *(long*)&version_v` (an inline i56 Pod 42 reads 0x2a03),
+//     then `p (*(long*)&version_v) >> 8` -> 42.
+//   * logos-gdb's `logos-hermes`/AnyVal printer decode the AT-REST arena form
+//     (self-relative relptrs), not a live `HAny` (absolute pointer), so they
+//     don't apply to these locals. Inspect the decoded scalars below instead.
+package hermes;
+
+use logos.lang.hermes.hstatic;     // HermesStatic + @-patterns
+use logos.lang.hermes.tmpl;        // @-literals with $capture / ${expr}
+use logos.lang.hermes.comp_builder; // @[ ... for ... ] comprehensions
+use logos.lang.hermes.pat;         // match over @-patterns
+use logos.lang.hermes.container;   // Hermes, hermes_new, root()
+use logos.lang.hermes.anyval;      // HAny: Pod (i56 / bool) vs Ref
+use logos.lang.hermes.array;       // HArray<HAny>: as_array / get / len
+use logos.lang.hermes.hmap;        // HMap<HString,HAny>: as_map / get(key)
+use logos.lang.hermes.hstring;     // HString: as_string / as_str
+use logos.mem.hermes.parser;       // parse: text -> doc (parse_hermes: owning wrapper)
+use logos.mem.hermes.stringify;    // stringify: doc -> text
+use logos.lang.rc;                 // Rc<Hermes> (captured @-literals are Rc-held)
+use logos.mem.string;              // i64::to_string
+use logos.lang.str;                // str
+use logos.std.io;                  // print / println / println_string
+
+// Read a Hermes integer slot whether it's an inline i56 Pod or a wider Ref int.
+fn any_to_i64(v: HAny) -> i64 {
+    if v.is_i56() { return v.as_i56(); }
+    return v.as_i64();
+}
+
+// Classify a static @-document by its shape, using @-patterns.
+fn classify(d: &HermesStatic) -> str {
+    match d {
+        @[a, b, ..] => "array(2+)", 
+        @[..]       => "array",
+        @{}         => "map",
+        @42         => "the answer",
+        _           => "scalar",
+    }
+}
+
+fn main() -> i32 {
+    // ── A. Hermes as language ────────────────────────────────────────────────
+
+    // Build a config document that captures live Logos values.
+    let host: str = "localhost";
+    let port: i32 = 8080;
+    let cfg: Rc<Hermes> = @{"host": $host, "port": $port, "secure": ${port == 443}};
+    let cfg_text: String = stringify(cfg.deref().root());
+    print("config   = "); println(cfg_text.as_str());
+
+    // A list comprehension: squares of the odd numbers — a Hermes array built
+    // from a Logos loop.
+    let xs: [i32; 6] = [1, 2, 3, 4, 5, 6];
+    let squares: Rc<Hermes> = @[n * n for n in xs if (n % 2) == 1];
+    let sq_text: String = stringify(squares.deref().root());
+    print("squares  = "); println(sq_text.as_str());
+
+    // @-pattern matching over static documents.
+    let arr: HermesStatic = @[1, 2, 3];
+    let answer: HermesStatic = @42;
+    print("shapes   = ");
+    print(classify(&arr)); print(", ");
+    println(classify(&answer));
+
+    // ── B. Hermes at runtime: parse, navigate, stringify ────────────────────
+    // parse_hermes returns an OWNING Hermes (RAII-freed on drop); navigate from
+    // h.root(). A parse error yields a null root — hence the is_null() guard.
+    let src: str = r#"{
+        "name": "widget",
+        "version": 42,
+        "active": true,
+        "tags": ["fast", "safe", "small"]
+    }"#;
+    let h: Hermes = parse_hermes(src);
+    let doc: HAny = h.root();
+    if doc.is_null() { println("parse failed"); return 1; }
+
+    // Navigate with the safe HAny accessors: as_map / as_array / as_string. Bind
+    // the map to a local first — the borrow checker rejects doc.as_map().get(...)
+    // as a single chain.
+
+    let root: &HMap<HString, HAny> = doc.as_map();
+    let name_v: HAny    = root.get("name");
+    let version_v: HAny = root.get("version");
+    let active_v: HAny  = root.get("active");
+    let tags_v: HAny    = root.get("tags");
+
+    // >>> good breakpoint: inspect doc / root / name_v / version_v / tags_v <<<
+    let name: str    = name_v.as_string().as_str();
+    let version: i64 = any_to_i64(version_v);
+    let active: bool = active_v.as_bool();
+
+    print("name     = "); println(name);
+    print("version  = "); { let s: String = version.to_string(); println_string(&s); }
+    print("active   = "); println(if active { "true" } else { "false" });
+
+    // Walk the tags array.
+    let tags: &HArray<HAny> = tags_v.as_array();
+    print("tags     = ");
+    let mut i: i64 = 0i64;
+    while i < tags.len() {
+        print(tags.get(i).as_string().as_str());
+        if i + 1i64 < tags.len() { print(", "); }
+        i = i + 1i64;
+    }
+    println("");
+
+    // Stringify the whole document back out.
+    let out: String = stringify(doc);
+    print("rebuilt  = "); println(out.as_str());
+    return 0;
+}

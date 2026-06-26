@@ -1,0 +1,120 @@
+{
+    // Build/run the Logos showcases via lforge. "current" tasks act on the
+    // showcase whose entry file is open (target name == file basename, e.g.
+    // editing src/hello/hello.logos targets "hello").
+    //
+    // The problemMatcher block is repeated per task because tasks.json has no
+    // way to alias a shared matcher; it parses logosc's text diagnostics:
+    //   /abs/path.logos:LINE: error [ctx]: message
+    "version": "2.0.0",
+    "options": {
+        // lforge.hermes lives at the workspace root; lforge resolves the
+        // system logosc and stdlib on its own (no env vars needed).
+        "cwd": "${workspaceFolder}"
+    },
+    "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+    },
+    "tasks": [
+        {
+            "label": "lforge: build current",
+            "detail": "Build the showcase of the active file",
+            "type": "shell",
+            "command": "lforge",
+            "args": ["build", "${fileBasenameNoExtension}"],
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": {
+                "owner": "logos",
+                "source": "logosc",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(/.+?):(\\d+): (error|warning) \\[[^\\]]*\\]: (.+)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            }
+        },
+        {
+            "label": "lforge: run current",
+            "detail": "Build + run the showcase of the active file",
+            "type": "shell",
+            "command": "lforge",
+            "args": ["run", "${fileBasenameNoExtension}"],
+            "problemMatcher": {
+                "owner": "logos",
+                "source": "logosc",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(/.+?):(\\d+): (error|warning) \\[[^\\]]*\\]: (.+)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            }
+        },
+        {
+            "label": "lforge: build current (release)",
+            "detail": "Release build of the active file's showcase",
+            "type": "shell",
+            "command": "lforge",
+            "args": ["build", "--release", "${fileBasenameNoExtension}"],
+            "problemMatcher": {
+                "owner": "logos",
+                "source": "logosc",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(/.+?):(\\d+): (error|warning) \\[[^\\]]*\\]: (.+)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            }
+        },
+        {
+            "label": "lforge: build all",
+            "detail": "Build every showcase target",
+            "type": "shell",
+            "command": "lforge",
+            "args": ["build"],
+            "group": "build",
+            "problemMatcher": {
+                "owner": "logos",
+                "source": "logosc",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(/.+?):(\\d+): (error|warning) \\[[^\\]]*\\]: (.+)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            }
+        },
+        {
+            "label": "lforge: test",
+            "detail": "Run lforge test (walks tests/)",
+            "type": "shell",
+            "command": "lforge",
+            "args": ["test"],
+            "group": { "kind": "test", "isDefault": true },
+            "problemMatcher": {
+                "owner": "logos",
+                "source": "logosc",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(/.+?):(\\d+): (error|warning) \\[[^\\]]*\\]: (.+)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            }
+        },
+        {
+            "label": "lforge: clean",
+            "detail": "Remove .lforge/",
+            "type": "shell",
+            "command": "lforge",
+            "args": ["clean"],
+            "problemMatcher": []
+        },
+        {
+            "label": "logos-demo: sync manifest",
+            "detail": "Regenerate lforge.hermes from src/<name>/<name>.logos",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/sync-manifest.sh",
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    // Logos has no published VSCode language extension yet (LSP is on the
+    // lforge roadmap). Logos is Rust-like, so borrow Rust's TextMate grammar
+    // for highlighting. This only sets the language mode for tokens; if you
+    // have rust-analyzer installed and it gets noisy on .logos files, change
+    // "rust" to "plaintext" here.
+    "files.associations": {
+        "*.logos": "rust",
+        "*.hermes": "jsonc",
+        "*.module": "jsonc"
+    },
+    // Don't let rust-analyzer (if present) try to manage these files.
+    "rust-analyzer.files.excludeDirs": ["src"],
+    "files.exclude": {
+        "**/.lforge": true
+    }
+}

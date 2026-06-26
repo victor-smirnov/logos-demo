@@ -1,0 +1,61 @@
+{
+    // Debug Logos showcases with logos-gdb (gdb + Logos pretty-printers:
+    // String, Vec, slice, Box, and a Hermes decoder). Requires the C/C++
+    // extension (ms-vscode.cpptools) for the cppdbg driver.
+    //
+    // The debug profile of `lforge build` emits -g (Logos line + local info),
+    // so the preLaunchTasks build with lforge directly.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // F5 on a showcase's entry file (src/<name>/<name>.logos): builds
+            // and debugs that target, no prompt. Keep the entry file focused
+            // when you launch; for any other target use the "pick" config.
+            "name": "Debug current showcase",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.lforge/debug/out/${fileBasenameNoExtension}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/logos-gdb",
+            "preLaunchTask": "lforge: build current",
+            "setupCommands": [
+                {
+                    "description": "Enable gdb pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            // Pick any target by name (must already be in lforge.hermes).
+            "name": "Debug showcase (pick target)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.lforge/debug/out/${input:target}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/logos-gdb",
+            "preLaunchTask": "lforge: build all",
+            "setupCommands": [
+                {
+                    "description": "Enable gdb pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "target",
+            "type": "promptString",
+            "description": "Showcase target name (see lforge.hermes targets[])",
+            "default": "hello"
+        }
+    ]
+}

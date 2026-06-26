@@ -1,0 +1,9 @@
+{
+    name:    "logos-demo",
+    version: "0.1.0",
+    targets: [
+        { kind: "bin", name: "hello", src: "src/hello", entry: "hello" },
+        { kind: "bin", name: "hermes", src: "src/hermes", entry: "hermes" },
+        { kind: "bin", name: "strings", src: "src/strings", entry: "strings" }
+    ]
+}

@@ -1,0 +1,10 @@
+package strings;
+
+use logos.std.io;
+use logos.mem.string;
+
+fn main() -> i32 {
+    let greeting: String = String::from("Logos strings");
+    println(greeting.as_str());
+    return 0;
+}

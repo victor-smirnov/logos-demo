@@ -1,0 +1,7 @@
+{
+    // The C/C++ extension provides the cppdbg debug driver used by
+    // launch.json to drive logos-gdb. That's the only hard requirement.
+    "recommendations": [
+        "ms-vscode.cpptools"
+    ]
+}
